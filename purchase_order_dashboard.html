@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Order Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 11px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            word-wrap: break-word;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input, select {
+            margin: 10px;
+            padding: 5px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Purchase Order Dashboard</h2>
+    <input type="file" id="upload" accept="application/JSON">
+    <div>
+        <label for="vendorFilter">Vendor Name:</label>
+        <select id="vendorFilter"></select>
+        <label for="marketplaceFilter">Marketplace Name:</label>
+        <select id="marketplaceFilter"></select>
+        <label for="skuSearch">Search SKU:</label>
+        <input type="text" id="skuSearch">
+        <label for="shipmentSearch">Search Shipment ID:</label>
+        <input type="text" id="shipmentSearch">
+    </div>
+    <table id="poTable">
+        <thead>
+            <tr>
+                <th>Marketplace Name</th>
+                <th>Warehouse Code</th>
+                <th>SKU</th>
+                <th>Title</th>
+                <th>EAN Code</th>
+                <th>ASIN</th>
+                <th>Vendor Name</th>
+                <th>Case Pack</th>
+                <th>MRP</th>
+                <th>Costing (ex. GST)</th>
+                <th>GST %</th>
+                <th>PO Number</th>
+                <th>PO Date</th>
+                <th>PO Quantity</th>
+                <th>Shipment ID</th>
+                <th>Appointment Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        let allData = [];
+        document.getElementById('upload').addEventListener('change', function (e) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const json = JSON.parse(event.target.result);
+                    allData = Array.isArray(json) ? json : [json];
+                    populateFilters();
+                    displayTable();
+                } catch (err) {
+                    alert('Invalid JSON file.');
+                }
+            };
+            reader.readAsText(e.target.files[0]);
+        });
+        function populateFilters() {
+            const vendorSet = new Set();
+            const marketplaceSet = new Set();
+            allData.forEach(item => {
+                vendorSet.add(item["Vendor Name"]);
+                marketplaceSet.add(item["Macketplace Name"]);
+            });
+            const vendorFilter = document.getElementById('vendorFilter');
+            const marketplaceFilter = document.getElementById('marketplaceFilter');
+            vendorFilter.innerHTML = '<option value="">All</option>' + [...vendorSet].map(v => `<option value="${v}">${v}</option>`).join('');
+            marketplaceFilter.innerHTML = '<option value="">All</option>' + [...marketplaceSet].map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+        function displayTable() {
+            const vendorFilter = document.getElementById('vendorFilter').value.toLowerCase();
+            const marketplaceFilter = document.getElementById('marketplaceFilter').value.toLowerCase();
+            const skuSearch = document.getElementById('skuSearch').value.toLowerCase();
+            const shipmentSearch = document.getElementById('shipmentSearch').value.toLowerCase();
+            const tbody = document.getElementById('poTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            allData.forEach(item => {
+                if ((vendorFilter && item["Vendor Name"].toLowerCase() !== vendorFilter) ||
+                    (marketplaceFilter && item["Macketplace Name"].toLowerCase() !== marketplaceFilter) ||
+                    (skuSearch && !item["SKU"].toLowerCase().includes(skuSearch)) ||
+                    (shipmentSearch && !item["SHIPMENT \nID"].toLowerCase().includes(shipmentSearch))) {
+                    return;
+                }
+                const row = tbody.insertRow();
+                const fields = [
+                    "Macketplace Name", "Warehouse Code", "SKU", "Title", "EAN Code", "ASIN",
+                    "Vendor Name", "Case Pack", "MRP", "Costing_ex. GST", "GST %",
+                    "PO Number", "PO Date", "PO Quantity", "SHIPMENT \nID", "APPOINTMENT \nDATE", "STATUS"
+                ];
+                fields.forEach(field => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[field] || '';
+                });
+            });
+        }
+        document.getElementById('vendorFilter').addEventListener('change', displayTable);
+        document.getElementById('marketplaceFilter').addEventListener('change', displayTable);
+        document.getElementById('skuSearch').addEventListener('input', displayTable);
+        document.getElementById('shipmentSearch').addEventListener('input', displayTable);
+    </script>
+</body>
+</html>
